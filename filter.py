@@ -3,11 +3,9 @@ import pandas as pd
 # Load CSV
 df = pd.read_csv('/Users/zuoao/Desktop/monatszahlen2510_verkehrsunfaelle_30_10_25.csv', encoding='utf-8')
 
-# Filter: Alkoholunfälle + insgesamt, exclude 'Summe' rows and null values
+# Filter: only 'insgesamt' type, exclude null values
 filtered = df[
-    (df['MONATSZAHL'] == 'Alkoholunfälle') &
     (df['AUSPRAEGUNG'] == 'insgesamt') &
-    (df['MONAT'] != 'Summe') &
     (df['WERT'].notna())
 ][['MONATSZAHL', 'AUSPRAEGUNG', 'JAHR', 'MONAT', 'WERT']].copy()
 
@@ -25,7 +23,10 @@ print(f"\nGround truth 2021: {len(ground_truth)} rows")
 print(ground_truth.to_string(index=False))
 ground_truth.to_csv('ground_truth_2021.csv', index=False, encoding='utf-8')
 
-# Prediction target
-target = ground_truth[ground_truth['MONAT'] == '202101']
+# Prediction target: Alkoholunfälle 2021-01
+target = ground_truth[
+    (ground_truth['MONATSZAHL'] == 'Alkoholunfälle') &
+    (ground_truth['MONAT'] == '202101')
+]
 if not target.empty:
-    print(f"\nPrediction target: 2021-01, Actual value = {target['WERT'].values[0]}")
+    print(f"\nPrediction target (Alkoholunfälle 2021-01): Actual value = {target['WERT'].values[0]}")
