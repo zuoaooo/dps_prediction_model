@@ -62,7 +62,7 @@ try:
 
     lr_predictions = lr_model.predict(X_2021)
     print(f"   ✓ Model fitted successfully")
-    print(f"   Predictions: {lr_predictions[:3].round(2)}... (first 3 months)")
+    print(f"   All 12 months: {lr_predictions.round(2)}")
 except Exception as e:
     print(f"   ✗ Model failed: {e}")
     lr_predictions = None
@@ -75,7 +75,7 @@ try:
     arima_forecast = arima_fitted.forecast(steps=n_forecast)
     arima_predictions = arima_forecast.values
     print(f"   ✓ Model fitted successfully")
-    print(f"   Predictions: {arima_predictions[:3].round(2)}... (first 3 months)")
+    print(f"   All 12 months: {arima_predictions.round(2)}")
 except Exception as e:
     print(f"   ✗ Model failed: {e}")
     arima_predictions = None
@@ -88,7 +88,7 @@ try:
     sarima_forecast = sarima_fitted.forecast(steps=n_forecast)
     sarima_predictions = sarima_forecast.values
     print(f"   ✓ Model fitted successfully")
-    print(f"   Predictions: {sarima_predictions[:3].round(2)}... (first 3 months)")
+    print(f"   All 12 months: {sarima_predictions.round(2)}")
 except Exception as e:
     print(f"   ✗ Model failed: {e}")
     sarima_predictions = None
@@ -101,7 +101,7 @@ try:
     sarima_opt_forecast = sarima_opt_fitted.forecast(steps=n_forecast)
     sarima_opt_predictions = sarima_opt_forecast.values
     print(f"   ✓ Model fitted successfully")
-    print(f"   Predictions: {sarima_opt_predictions[:3].round(2)}... (first 3 months)")
+    print(f"   All 12 months: {sarima_opt_predictions.round(2)}")
 except Exception as e:
     print(f"   ✗ Model failed: {e}")
     sarima_opt_predictions = None
@@ -130,7 +130,7 @@ if PROPHET_AVAILABLE:
         prophet_predictions = prophet_forecast['yhat'].values
 
         print(f"   ✓ Model fitted successfully")
-        print(f"   Predictions: {prophet_predictions[:3].round(2)}... (first 3 months)")
+        print(f"   All 12 months: {prophet_predictions.round(2)}")
     except Exception as e:
         print(f"   ✗ Model failed: {e}")
         prophet_predictions = None
@@ -210,82 +210,59 @@ for i in range(12):
     results_list.append(row)
 
 results_df = pd.DataFrame(results_list)
-results_df.to_csv('prediction_results_2021.csv', index=False)
+results_df.to_csv('prediction/prediction_results_2021.csv', index=False)
 print("\n✓ Detailed results saved to 'prediction_results_2021.csv'")
 
-# Save summary
-summary_df = pd.DataFrame([{
-    'Best_Model': best_model,
-    'MAE': model_metrics[best_model]['mae'],
-    'RMSE': model_metrics[best_model]['rmse'],
-    'MAPE': model_metrics[best_model]['mape'],
-    'Total_Error': model_metrics[best_model]['total_error']
-}])
-summary_df.to_csv('model_summary.csv', index=False)
+# Save summary for ALL models
+summary_list = []
+for model_name, metrics in model_metrics.items():
+    summary_list.append({
+        'Model': model_name,
+        'MAE': metrics['mae'],
+        'RMSE': metrics['rmse'],
+        'MAPE': metrics['mape'],
+        'Total_Error': metrics['total_error'],
+        'Is_Best': 'Yes' if model_name == best_model else 'No'
+    })
+
+summary_df = pd.DataFrame(summary_list)
+summary_df = summary_df.sort_values('MAE')  # Sort by MAE (best first)
+summary_df.to_csv('prediction/model_summary.csv', index=False)
+print("✓ Model summary (all models) saved to 'prediction/model_summary.csv'")
 
 print("\n" + "="*60)
 print("VISUALIZATION")
 print("="*60)
 
-# Create visualizations (4 essential plots)
-fig = plt.figure(figsize=(18, 10))
-gs = fig.add_gridspec(2, 2, hspace=0.3, wspace=0.3)
+# Create visualization - Historical trend + 2021 predictions
+fig, ax = plt.subplots(figsize=(16, 6))
 
-# Plot 1: Historical trend (2016-2020) + 2021 predictions (MAIN PLOT)
-ax1 = fig.add_subplot(gs[0, :])
+# Plot historical data (2016-2020)
 historical_recent = train_df[train_df['date'] >= '2016-01-01']
-ax1.plot(historical_recent['date'], historical_recent['WERT'], 'b-o',
-         markersize=3, alpha=0.6, linewidth=1.5, label='Historical (2016-2020)')
+ax.plot(historical_recent['date'], historical_recent['WERT'], 'b-o',
+        markersize=3, alpha=0.6, linewidth=1.5, label='Historical (2016-2020)')
 
 # Plot 2021 predictions and actual
 dates_2021 = truth_df['date']
-ax1.plot(dates_2021, actual_values, 'ro-', markersize=6, linewidth=2,
-         label='Actual 2021', zorder=5)
+ax.plot(dates_2021, actual_values, 'ro-', markersize=6, linewidth=2,
+        label='Actual 2021', zorder=5)
 
 colors = ['green', 'orange', 'purple', 'brown', 'cyan']
 for i, (model_name, preds) in enumerate(models.items()):
-    ax1.plot(dates_2021, preds, marker='s', markersize=4, alpha=0.7,
-             linewidth=1.5, label=f'{model_name}', color=colors[i % len(colors)])
+    ax.plot(dates_2021, preds, marker='s', markersize=4, alpha=0.7,
+            linewidth=1.5, label=f'{model_name}', color=colors[i % len(colors)])
 
-ax1.axvline(x=pd.to_datetime('2021-01-01'), color='gray', linestyle='--', alpha=0.5)
-ax1.set_xlabel('Date', fontsize=11)
-ax1.set_ylabel('Number of Accidents', fontsize=11)
-ax1.set_title('Alkoholunfälle: Historical Trend and 2021 Predictions', fontsize=13, fontweight='bold')
-ax1.grid(True, alpha=0.3)
-ax1.legend(loc='best', fontsize=9)
-ax1.tick_params(axis='x', rotation=45)
+ax.axvline(x=pd.to_datetime('2021-01-01'), color='gray', linestyle='--', alpha=0.5)
+ax.set_xlabel('Date', fontsize=11)
+ax.set_ylabel('Number of Accidents', fontsize=11)
+ax.set_title('Alkoholunfälle: Historical Trend and 2021 Predictions', fontsize=13, fontweight='bold')
+ax.grid(True, alpha=0.3)
+ax.legend(loc='best', fontsize=9)
+ax.tick_params(axis='x', rotation=45)
 
-# Plot 2: Model performance comparison
-ax2 = fig.add_subplot(gs[1, 0])
-model_names = list(model_metrics.keys())
-maes = [model_metrics[m]['mae'] for m in model_names]
-colors_bar = ['green' if m == best_model else 'steelblue' for m in model_names]
-bars = ax2.barh(model_names, maes, color=colors_bar, alpha=0.7, edgecolor='black')
-ax2.set_xlabel('Mean Absolute Error (MAE)', fontsize=10)
-ax2.set_title('Model Performance Comparison', fontsize=12, fontweight='bold')
-ax2.grid(True, alpha=0.3, axis='x')
-
-for i, (bar, mae) in enumerate(zip(bars, maes)):
-    ax2.text(mae + 0.5, bar.get_y() + bar.get_height()/2, f'{mae:.2f}',
-             va='center', fontsize=9, fontweight='bold')
-
-# Plot 3: Error distribution over months
-ax3 = fig.add_subplot(gs[1, 1])
-for i, model_name in enumerate(models.keys()):
-    errors = [abs(models[model_name][j] - actual_values[j]) for j in range(12)]
-    ax3.plot(range(1, 13), errors, marker='o', label=model_name, linewidth=2,
-             color=colors[i % len(colors)])
-
-ax3.set_xlabel('Month', fontsize=10)
-ax3.set_ylabel('Absolute Error', fontsize=10)
-ax3.set_title('Prediction Error by Month', fontsize=12, fontweight='bold')
-ax3.set_xticks(range(1, 13))
-ax3.set_xticklabels(['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'])
-ax3.grid(True, alpha=0.3)
-ax3.legend(fontsize=8)
-
-plt.savefig('alkohol_prediction_analysis_2021.png', dpi=300, bbox_inches='tight')
-print("✓ Visualization saved to 'alkohol_prediction_analysis_2021.png'")
+plt.tight_layout()
+plt.savefig('prediction/alkohol_prediction_analysis_2021.png', dpi=300, bbox_inches='tight')
+print("✓ Visualization saved to 'prediction/alkohol_prediction_analysis_2021.png'")
 
 print("\n" + "="*60)
 print("ANALYSIS COMPLETE")
