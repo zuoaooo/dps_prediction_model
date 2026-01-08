@@ -30,3 +30,25 @@ target = ground_truth[
 ]
 if not target.empty:
     print(f"\nPrediction target (Alkoholunfälle 2021-01): Actual value = {target['WERT'].values[0]}")
+
+# Additional filtering: Alkoholunfälle with 'insgesamt' type, excluding 'Summe'
+alkohol_filtered = df[
+    (df['MONATSZAHL'] == 'Alkoholunfälle') &
+    (df['AUSPRAEGUNG'] == 'insgesamt') &
+    (df['MONAT'] != 'Summe') &
+    (df['WERT'].notna())
+][['MONATSZAHL', 'AUSPRAEGUNG', 'JAHR', 'MONAT', 'WERT']].copy()
+
+alkohol_filtered['WERT'] = alkohol_filtered['WERT'].astype(int)
+
+# Alkoholunfälle training data: 2000-2020
+alkohol_training_data = alkohol_filtered[alkohol_filtered['JAHR'] <= 2020].copy()
+print(f"\nAlkoholunfälle training data: {len(alkohol_training_data)} rows (years {alkohol_training_data['JAHR'].min()}-{alkohol_training_data['JAHR'].max()})")
+print(alkohol_training_data.tail(10).to_string(index=False))
+alkohol_training_data.to_csv('alkohol_training_data.csv', index=False, encoding='utf-8')
+
+# Alkoholunfälle ground truth: 2021
+alkohol_ground_truth = alkohol_filtered[alkohol_filtered['JAHR'] == 2021].copy()
+print(f"\nAlkoholunfälle ground truth 2021: {len(alkohol_ground_truth)} rows")
+print(alkohol_ground_truth.to_string(index=False))
+alkohol_ground_truth.to_csv('alkohol_ground_truth_2021.csv', index=False, encoding='utf-8')
