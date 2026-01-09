@@ -65,15 +65,10 @@ Detailed prediction results are available in [mlp_prediction_results_2021.csv](p
 │   ├── holt_winters_model.py     # Holt-Winters exponential smoothing
 │   └── svr_model.py              # Support Vector Regression
 ├── model_experiments/             # All model results and comparisons
-│   ├── *_model_summary.csv       # Performance metrics
-│   ├── *_prediction_results_2021.csv
-│   └── *_best_model_vs_actual.png
 ├── prediction/                    # Production model results (MLP)
 │   ├── mlp_best_model_vs_actual.png
 │   └── mlp_prediction_results_2021.csv
 ├── scripts/                       # EDA and visualization scripts
-│   ├── monthly_visualization.py
-│   ├── filter.py
 ├── visualization/                 # EDA output visualizations
 ├── app_fastapi.py                # FastAPI application (Production)
 ├── app.py                        # Flask API (Legacy)
