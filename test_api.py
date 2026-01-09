@@ -1,67 +1,91 @@
 #!/usr/bin/env python3
-"""
-Test script for the prediction API
-"""
 import requests
 import json
 
-# Change this to your deployed URL when testing production
 API_URL = "http://localhost:8000"
 
-def test_prediction(year, month):
-    """Test a single prediction - accepts both int and string for month"""
+def test_prediction(year, month, description=""):
     url = f"{API_URL}/predict"
     payload = {"year": year, "month": month}
 
-    # Display month properly whether it's int or string
-    month_display = f"{int(month):02d}" if month else "??"
-    print(f"\nTesting: {year}/{month_display}")
-    print(f"Request: {json.dumps(payload)}")
+    print(f"\n{description}")
+    print(f"Payload: {json.dumps(payload)} (types: year={type(year).__name__}, month={type(month).__name__})")
 
     try:
-        response = requests.post(url, json=payload, headers={"Content-Type": "application/json"})
-        print(f"Status code: {response.status_code}")
-        print(f"Response: {response.json()}")
+        response = requests.post(url, json=payload)
+        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            print(f"✓ Success: {response.json()}")
+        else:
+            print(f"✗ Error: {response.json()}")
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"✗ Exception: {e}")
+
+def test_raw_json(year, month, description=""):
+    url = f"{API_URL}/predict"
+    json_str = json.dumps({"year": year, "month": month})
+
+    print(f"\n{description}")
+    print(f"Raw JSON string: {json_str}")
+
+    try:
+        response = requests.post(url, data=json_str, headers={"Content-Type": "application/json"})
+        print(f"Status: {response.status_code}")
+        if response.status_code == 200:
+            print(f"✓ Success: {response.json()}")
+        else:
+            print(f"✗ Error: {response.json()}")
+    except Exception as e:
+        print(f"✗ Exception: {e}")
 
 if __name__ == "__main__":
-    print("=" * 60)
-    print("API Test Script")
-    print("=" * 60)
+    print("=" * 70)
+    print("API Test Script - Simulating Real HTTP Requests")
+    print("=" * 70)
 
-    # Test homepage
-    print("\n1. Testing homepage:")
+    print("\n[1] Homepage")
     try:
         response = requests.get(f"{API_URL}/")
-        print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+        print(f"Status: {response.status_code}")
+        print(f"Response: {json.dumps(response.json(), indent=2)}")
     except Exception as e:
         print(f"Error: {e}")
 
-    # Test various predictions
-    print("\n2. Testing predictions:")
+    print("\n" + "=" * 70)
+    print("[2] Valid Requests - Testing Different Month Formats")
+    print("=" * 70)
 
-    # Test 2021 data with integer
-    test_prediction(2021, 1)
+    test_prediction(2021, 1, "Test 1: Integer month (1)")
+    test_prediction(2021, 6, "Test 2: Integer month (6)")
+    test_prediction(2023, 12, "Test 3: Integer month (12)")
 
-    # Test with string format "01" to verify API handles it
-    test_prediction(2021, "01")
+    print("\n" + "=" * 70)
+    print("[3] String Month Format - Now Supported!")
+    print("=" * 70)
 
-    # Test 2023 data
-    test_prediction(2023, 6)
+    test_prediction(2021, "01", "Test 4: String month ('01') - converts to int")
+    test_prediction(2021, "1", "Test 5: String month ('1') - converts to int")
+    test_prediction("2023", "06", "Test 6: Both as strings")
 
-    # Test 2025 data
-    test_prediction(2025, 12)
+    print("\n" + "=" * 70)
+    print("[4] Raw JSON Testing (Simulating Frontend/Postman)")
+    print("=" * 70)
 
-    # Test error handling
-    print("\n3. Testing error handling:")
+    test_raw_json(2021, 1, "Test 7: Raw JSON with int month")
+    test_raw_json(2024, 6, "Test 8: Raw JSON with int month")
 
-    # Invalid month
-    test_prediction(2021, 13)
+    print("\n" + "=" * 70)
+    print("[5] Error Cases")
+    print("=" * 70)
 
-    # Past date (assuming training data ends at 2020)
-    test_prediction(2019, 1)
+    test_prediction(2021, 13, "Test 9: Invalid month (13)")
+    test_prediction(2021, 0, "Test 10: Invalid month (0)")
+    test_prediction(2019, 1, "Test 11: Past date (2019)")
+    test_prediction(2021, "abc", "Test 12: Invalid string format")
 
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("Test completed")
-    print("=" * 60)
+    print("=" * 70)
+    print("\nNOTE: API now accepts both integers and strings for year/month.")
+    print("Examples: month=1, month='01', month='1' all work!")
+    print("JSON format {'month': 01} is also valid (parsed as integer 1).")

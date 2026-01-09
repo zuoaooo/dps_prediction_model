@@ -1,5 +1,7 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+from typing import Union
 import pandas as pd
 import numpy as np
 from sklearn.neural_network import MLPRegressor
@@ -7,10 +9,31 @@ from sklearn.preprocessing import StandardScaler
 import warnings
 warnings.filterwarnings('ignore')
 
-app = Flask(__name__)
-CORS(app)
+class PredictionRequest(BaseModel):
+    year: Union[int, str] = Field(...)
+    month: Union[int, str] = Field(...)
 
-# Feature engineering function
+class PredictionResponse(BaseModel):
+    prediction: float
+
+class APIInfo(BaseModel):
+    message: str
+    model: str
+    training_period: str
+
+app = FastAPI(
+    title="Munich Traffic Accidents Forecasting API",
+    description="Predict alcohol-related traffic accidents using MLP Neural Network",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 def create_features(df, lags=[1, 2, 3, 6, 12], rolling_windows=[3, 6, 12]):
     df = df.copy()
     df['month'] = df['date'].dt.month
@@ -29,13 +52,10 @@ def create_features(df, lags=[1, 2, 3, 6, 12], rolling_windows=[3, 6, 12]):
     df['trend'] = range(len(df))
     return df
 
-# Load and prepare training data once when the app starts
-print("Loading training data...")
 train_df = pd.read_csv('data/alkohol_training_data.csv')
 train_df['date'] = pd.to_datetime(train_df['MONAT'], format='%Y%m')
 train_df = train_df.sort_values('date')
 
-# Create features for training
 train_features = create_features(train_df)
 train_features = train_features.dropna()
 
@@ -45,15 +65,11 @@ feature_cols = [col for col in train_features.columns
 X_train = train_features[feature_cols].values
 y_train = train_features['WERT'].values
 
-# Scale features
 scaler = StandardScaler()
 X_train_scaled = scaler.fit_transform(X_train)
 
-# Train the best performing model (MLP with optimal configuration)
-# MAE: 6.26 (best among all models tested)
-print("Training MLP Neural Network (Best Model)...")
 mlp_model = MLPRegressor(
-    hidden_layer_sizes=(120, 80, 40, 20),  # Best architecture from mlp_model.py
+    hidden_layer_sizes=(120, 80, 40, 20),
     activation='relu',
     alpha=0.001,
     solver='adam',
@@ -64,74 +80,60 @@ mlp_model = MLPRegressor(
     validation_fraction=0.1
 )
 mlp_model.fit(X_train_scaled, y_train)
-print("MLP Model trained successfully!")
 
-# Get the last training date
-last_train_date = train_df['date'].iloc[-1]
-last_train_year = last_train_date.year
-last_train_month = last_train_date.month
-print(f"Training data ends at: {last_train_year}-{last_train_month:02d}")
-print(f"Model: MLP (120-80-40-20) - MAE: 6.26")
+first_train_year = train_df['date'].iloc[0].year
+first_train_month = train_df['date'].iloc[0].month
+last_train_year = train_df['date'].iloc[-1].year
+last_train_month = train_df['date'].iloc[-1].month
 
-# Cache for predictions to avoid recalculating
 prediction_cache = {}
-temp_df_cache = train_df.copy()
 
-@app.route('/', methods=['GET'])
-def home():
-    return jsonify({
-        "message": "Munich Alcohol-Related Traffic Accidents Forecasting API",
-        "usage": "POST /predict with JSON body: {\"year\": 2021, \"month\": 1}",
-        "model": "MLP Neural Network (120-80-40-20)",
-        "model_performance": "MAE: 6.26 (best among all tested models)",
-        "training_period": f"up to {last_train_year}-{last_train_month:02d}",
-        "note": "Can predict any future month/year"
-    })
+@app.get("/", response_model=APIInfo)
+async def home():
+    return APIInfo(
+        message="Munich Alcohol-Related Traffic Accidents Forecasting API",
+        model="MLP Neural Network",
+        training_period=f"{first_train_year}-{first_train_month:02d} to {last_train_year}-{last_train_month:02d}"
+    )
 
-@app.route('/predict', methods=['POST'])
-def predict():
+@app.post("/predict", response_model=PredictionResponse)
+async def predict(request: PredictionRequest):
     try:
-        data = request.get_json()
+        try:
+            year = int(request.year)
+            month = int(request.month)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Year and month must be valid numbers")
 
-        if not data:
-            return jsonify({"error": "No JSON data provided"}), 400
+        if not (2021 <= year <= 2030):
+            raise HTTPException(status_code=400, detail="Year must be between 2021 and 2030")
 
-        year = data.get('year')
-        month = data.get('month')
+        if not (1 <= month <= 12):
+            raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
 
-        if year is None or month is None:
-            return jsonify({"error": "Both 'year' and 'month' are required"}), 400
-
-        # Validate input
-        year = int(year)
-        month = int(month)
-
-        if month < 1 or month > 12:
-            return jsonify({"error": "Month must be between 1 and 12"}), 400
-
-        # Check if requesting past data
         if year < last_train_year or (year == last_train_year and month <= last_train_month):
-            return jsonify({"error": f"Cannot predict for past dates. Training data ends at {last_train_year}-{last_train_month:02d}"}), 400
+            raise HTTPException(
+                status_code=400,
+                detail=f"Cannot predict for past dates. Training data ends at {last_train_year}-{last_train_month:02d}"
+            )
 
-        # Limit predictions to reasonable future (e.g., 5 years)
         if year > last_train_year + 5:
-            return jsonify({"error": "Predictions only available up to 5 years in the future"}), 400
+            raise HTTPException(
+                status_code=400,
+                detail="Predictions only available up to 5 years in the future"
+            )
 
-        # Check cache first
         cache_key = f"{year}-{month}"
         if cache_key in prediction_cache:
-            return jsonify({"prediction": prediction_cache[cache_key]})
+            return PredictionResponse(
+                prediction=prediction_cache[cache_key],
+            )
 
-        # Multi-step forecasting with MLP
-        global temp_df_cache
-        temp_df = temp_df_cache.copy()
-
-        # Calculate how many months to predict
+        temp_df = train_df.copy()
         target_date = pd.Timestamp(f'{year}-{month:02d}-01')
         last_date = train_df['date'].iloc[-1]
         months_to_predict = (target_date.year - last_date.year) * 12 + (target_date.month - last_date.month)
 
-        # Generate predictions month by month
         for i in range(1, months_to_predict + 1):
             pred_year = last_date.year + (last_date.month + i - 1) // 12
             pred_month = (last_date.month + i - 1) % 12 + 1
@@ -152,20 +154,32 @@ def predict():
 
             temp_df.iloc[-1, temp_df.columns.get_loc('WERT')] = pred
 
-            # Cache this prediction
             pred_cache_key = f"{pred_year}-{pred_month}"
             prediction_cache[pred_cache_key] = round(float(pred), 2)
 
         prediction_value = prediction_cache[cache_key]
-        return jsonify({"prediction": prediction_value})
 
-    except ValueError as e:
-        return jsonify({"error": f"Invalid input: {str(e)}"}), 400
+        return PredictionResponse(
+            prediction=prediction_value,
+        )
+
+    except HTTPException:
+        raise
     except Exception as e:
-        return jsonify({"error": f"Server error: {str(e)}"}), 500
+        raise HTTPException(status_code=500, detail=f"Server error: {str(e)}")
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "model": "MLP Neural Network",
+        "model_loaded": mlp_model is not None,
+        "training_data_end": f"{last_train_year}-{last_train_month:02d}",
+        "cache_size": len(prediction_cache)
+    }
 
 if __name__ == '__main__':
-    # Use PORT environment variable for deployment (Render, Heroku, etc.)
+    import uvicorn
     import os
-    port = int(os.environ.get('PORT', 8000))  # Changed default to 8000 to avoid macOS AirPlay
-    app.run(host='0.0.0.0', port=port)
+    port = int(os.environ.get('PORT', 8000))
+    uvicorn.run(app, host='0.0.0.0', port=port)
