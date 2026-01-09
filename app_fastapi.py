@@ -105,22 +105,25 @@ async def predict(request: PredictionRequest):
         except (ValueError, TypeError):
             raise HTTPException(status_code=400, detail="Year and month must be valid numbers")
 
-        if not (2021 <= year <= 2030):
-            raise HTTPException(status_code=400, detail="Year must be between 2021 and 2030")
-
         if not (1 <= month <= 12):
             raise HTTPException(status_code=400, detail="Month must be between 1 and 12")
 
-        if year < last_train_year or (year == last_train_year and month <= last_train_month):
+        # Calculate valid prediction range (5 years after training data ends)
+        min_pred_year = last_train_year + 1
+        max_pred_year = last_train_year + 5
+
+        # Check if requested date is within training data period (not allowed)
+        if year < min_pred_year or (year == last_train_year and month <= 12):
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot predict for past dates. Training data ends at {last_train_year}-{last_train_month:02d}"
+                detail=f"Cannot predict for training data period. Training data ends at {last_train_year}-{last_train_month:02d}. Please request predictions from {min_pred_year}-01 onwards."
             )
 
-        if year > last_train_year + 5:
+        # Check if prediction is too far in the future
+        if year > max_pred_year:
             raise HTTPException(
                 status_code=400,
-                detail="Predictions only available up to 5 years in the future"
+                detail=f"Predictions only available up to 5 years in the future. Maximum predictable date: {max_pred_year}-12"
             )
 
         cache_key = f"{year}-{month}"
