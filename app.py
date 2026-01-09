@@ -38,7 +38,7 @@ prediction_cache = {}
 @app.route('/', methods=['GET'])
 def home():
     return jsonify({
-        "message": "Munich Traffic Accidents Prediction API (Alkoholunfälle - insgesamt)",
+        "message": "Munich Alcohol-Related Traffic Accidents Forecasting API",
         "usage": "POST /predict with JSON body: {\"year\": 2021, \"month\": 01}",
         "model": "SARIMA(1,1,1)(1,1,1,12)",
         "training_period": f"up to {last_train_year}-{last_train_month:02d}",
@@ -48,7 +48,20 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        data = request.get_json(force=True)
+        # Try to get JSON, if it fails due to format issues (e.g., leading zeros), fix and retry
+        data = request.get_json()
+
+        if not data:
+            # If standard JSON parsing fails, try manual parsing to handle edge cases
+            try:
+                import json
+                import re
+                raw_data = request.get_data(as_text=True)
+                # Fix JSON with leading zeros like {"month": 01} -> {"month": 1}
+                fixed_data = re.sub(r':\s*0+(\d+)', r': \1', raw_data)
+                data = json.loads(fixed_data)
+            except Exception as e:
+                return jsonify({"error": f"Invalid JSON format: {str(e)}"}), 400
 
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
