@@ -39,7 +39,7 @@ prediction_cache = {}
 def home():
     return jsonify({
         "message": "Munich Alcohol-Related Traffic Accidents Forecasting API",
-        "usage": "POST /predict with JSON body: {\"year\": 2021, \"month\": 01}",
+        "usage": "POST /predict with JSON body: {\"year\": 2021, \"month\": 1}",
         "model": "SARIMA(1,1,1)(1,1,1,12)",
         "training_period": f"up to {last_train_year}-{last_train_month:02d}",
         "note": "Can predict any future month/year"
@@ -48,20 +48,7 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        # Try to get JSON, if it fails due to format issues (e.g., leading zeros), fix and retry
         data = request.get_json()
-
-        if not data:
-            # If standard JSON parsing fails, try manual parsing to handle edge cases
-            try:
-                import json
-                import re
-                raw_data = request.get_data(as_text=True)
-                # Fix JSON with leading zeros like {"month": 01} -> {"month": 1}
-                fixed_data = re.sub(r':\s*0+(\d+)', r': \1', raw_data)
-                data = json.loads(fixed_data)
-            except Exception as e:
-                return jsonify({"error": f"Invalid JSON format: {str(e)}"}), 400
 
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
@@ -72,12 +59,9 @@ def predict():
         if year is None or month is None:
             return jsonify({"error": "Both 'year' and 'month' are required"}), 400
 
-        # Validate and convert input - handle both string and integer inputs
-        try:
-            year = int(year)
-            month = int(month)
-        except (ValueError, TypeError) as e:
-            return jsonify({"error": f"Invalid year or month format. Both must be numbers. Error: {str(e)}"}), 400
+        # Validate input
+        year = int(year)
+        month = int(month)
 
         if month < 1 or month > 12:
             return jsonify({"error": "Month must be between 1 and 12"}), 400
