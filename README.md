@@ -6,10 +6,10 @@ This project predicts monthly alcohol-related traffic accidents (Alkoholunfälle
 
 ### Online API (Recommended)
 
-The API is deployed and ready to use at: **https://alkoholunfaelle-prediction.onrender.com**
+The API is deployed and ready to use at: **https://munich-alcohol-accidents-prediction.onrender.com**
 
 ```bash
-curl -X POST https://alkoholunfaelle-prediction.onrender.com/predict \
+curl -X POST https://munich-alcohol-accidents-prediction.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{"year": 2021, "month": 1}'
 ```
@@ -22,8 +22,8 @@ Response:
 ### API Documentation
 
 FastAPI provides interactive API documentation:
-- **Swagger UI**: https://alkoholunfaelle-prediction.onrender.com/docs
-- **ReDoc**: https://alkoholunfaelle-prediction.onrender.com/redoc
+- **Swagger UI**: https://munich-alcohol-accidents-prediction.onrender.com/docs
+- **ReDoc**: https://munich-alcohol-accidents-prediction.onrender.com/redoc
 
 ### Local Development
 
@@ -75,22 +75,15 @@ The model was trained on historical data up to December 2020 and validated on 20
 
 ```
 ├── data/                      # Training data from Munich Open Data Portal
-├── model_selection/           # Model training and selection scripts
-│   ├── mlp_model.py          # MLP Neural Network (BEST: MAE 6.26)
-│   ├── svr_model.py          # Support Vector Regression
-│   ├── holt_winters_model.py # Holt-Winters model
-│   ├── prophet_model.py      # Facebook Prophet
-│   └── sarima_model.py       # SARIMA model
-├── prediction/                # Final MLP model results
+├── prediction/                # MLP model prediction results
 │   ├── mlp_best_model_vs_actual.png
 │   ├── mlp_all_models_comparison.png
 │   ├── mlp_prediction_results_2021.csv
 │   └── mlp_model_summary.csv
-├── model_experiments/         # Other model testing results
 ├── scripts/                   # Data analysis and visualization scripts
 ├── visualization/             # EDA visualizations
-├── app_fastapi.py            # FastAPI application
-├── app.py                    # Flask API (legacy)
+├── app_fastapi.py            # FastAPI application (Production)
+├── app.py                    # Flask API (Legacy)
 ├── test_api.py               # API testing script
 └── requirements.txt          # Python dependencies
 ```
@@ -103,14 +96,14 @@ The model was trained on historical data up to December 2020 and validated on 20
 Get API information and model details.
 
 ```bash
-curl https://alkoholunfaelle-prediction.onrender.com/
+curl https://munich-alcohol-accidents-prediction.onrender.com/
 ```
 
 #### GET /health
 Health check endpoint.
 
 ```bash
-curl https://alkoholunfaelle-prediction.onrender.com/health
+curl https://munich-alcohol-accidents-prediction.onrender.com/health
 ```
 
 #### POST /predict
@@ -133,7 +126,7 @@ Get prediction for a specific month and year.
 
 **Example:**
 ```bash
-curl -X POST https://alkoholunfaelle-prediction.onrender.com/predict \
+curl -X POST https://munich-alcohol-accidents-prediction.onrender.com/predict \
   -H "Content-Type: application/json" \
   -d '{"year": 2021, "month": 1}'
 ```
@@ -151,7 +144,7 @@ The API returns appropriate error messages for invalid inputs:
 
 The application is deployed on [Render](https://render.com) and automatically updates when changes are pushed to the main branch.
 
-**Live API:** https://alkoholunfaelle-prediction.onrender.com
+**Live API:** https://munich-alcohol-accidents-prediction.onrender.com
 
 ## 📝 License
 
