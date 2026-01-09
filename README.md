@@ -1,6 +1,6 @@
-# DPS Alkoholunfälle Prediction Model
+# Munich Alcohol-Related Traffic Accidents Prediction
 
-This project predicts alcohol-related traffic accidents (Alkoholunfälle) in Munich using time series analysis. The model is trained on historical data from [Munich Open Data Portal](https://opendata.muenchen.de/dataset/monatszahlen-verkehrsunfaelle/resource/40094bd6-f82d-4979-949b-26c8dc00b9a7) and provides predictions for future months.
+This project predicts monthly alcohol-related traffic accidents (Alkoholunfälle) in Munich using machine learning. The API is powered by a **Multi-Layer Perceptron (MLP) Neural Network** trained on historical data from the [Munich Open Data Portal](https://opendata.muenchen.de/dataset/monatszahlen-verkehrsunfaelle/resource/40094bd6-f82d-4979-949b-26c8dc00b9a7).
 
 ## 🚀 Quick Start
 
@@ -16,8 +16,14 @@ curl -X POST https://alkoholunfaelle-prediction.onrender.com/predict \
 
 Response:
 ```json
-{"prediction": 22.05}
+{"prediction": 24.12}
 ```
+
+### API Documentation
+
+FastAPI provides interactive API documentation:
+- **Swagger UI**: https://alkoholunfaelle-prediction.onrender.com/docs
+- **ReDoc**: https://alkoholunfaelle-prediction.onrender.com/redoc
 
 ### Local Development
 
@@ -26,9 +32,9 @@ Response:
 pip install -r requirements.txt
 ```
 
-2. Run the API locally:
+2. Run the FastAPI server:
 ```bash
-python app.py
+python3 app_fastapi.py
 ```
 
 3. Test locally:
@@ -42,54 +48,51 @@ Or use the test script:
 ```bash
 python test_api.py
 ```
-The test script includes comprehensive test cases for API validation, error handling, and various prediction scenarios.
 
-## 📊 Data Analysis & Model Selection
+## 🎯 Model Performance
 
-### Data Source
-The training data is sourced from the [Munich Open Data Portal](https://opendata.muenchen.de/dataset/monatszahlen-verkehrsunfaelle/resource/40094bd6-f82d-4979-949b-26c8dc00b9a7), containing monthly statistics of traffic accidents in Munich.
+### Selected Model: MLP Neural Network
 
-### Time Series Patterns
+**Architecture**: 120-80-40-20 (4 hidden layers)
+**Performance (MAE)**: 6.26 - Best among all tested models
 
-The historical data shows clear seasonal patterns and trends in alcohol-related accidents:
+The model was trained on historical data up to December 2020 and validated on 2021 data.
 
-![Seasonal Decomposition](visualization/seasonal_decomposition.png)
-*Seasonal decomposition showing trend, seasonality, and residuals*
+### Prediction Results
 
-## 🎯 Model Evaluation & Results
+![Model Comparison](prediction/mlp_all_models_comparison.png)
+*Comparison of different MLP architectures tested*
 
-Multiple time series models were evaluated on 2021 data:
+![Best Model vs Actual](prediction/mlp_best_model_vs_actual.png)
+*Best MLP model predictions vs actual 2021 values*
 
-- Linear Regression (Trend + Seasonality)
-- ARIMA(1,1,1)
-- **SARIMA(1,1,1)(1,1,1,12)** ✓ Best performing (MAE: 8.23)
-- Prophet (Facebook)
+### Detailed Results
 
-![Model Comparison](prediction/alkohol_prediction_analysis_2021.png)
-*Comparison of all models' predictions vs actual 2021 values*
-
-**Detailed results:**
-- [prediction_results_2021.csv](prediction/prediction_results_2021.csv) - Monthly predictions for all models
-- [model_summary.csv](prediction/model_summary.csv) - Model performance metrics (MAE, RMSE, MAPE)
+- [mlp_prediction_results_2021.csv](prediction/mlp_prediction_results_2021.csv) - Monthly predictions for 2021
+- [mlp_model_summary.csv](prediction/mlp_model_summary.csv) - Model performance metrics
 
 ## 📁 Project Structure
 
 ```
-├── data/                         # Training data from Munich Open Data Portal
-├── scripts/                      # Data analysis and visualization scripts
-│   ├── acf_pacf.py              # ACF/PACF analysis
-│   ├── filter.py                # Data filtering utilities
-│   ├── heatmap.py               # Heatmap generation
-│   ├── monthly_visualization.py # Monthly trend analysis
-│   ├── seasonal_decomposition.py # Seasonal decomposition
-│   └── yearly_visualization.py  # Yearly trend analysis
-├── visualization/                # Generated EDA visualizations
-├── prediction/                   # Prediction results and model comparisons
-├── select_predict_model.py       # Model training and evaluation script
-├── app.py                        # Flask API for predictions
-├── test_api.py                   # API testing script
-├── requirements.txt              # Python dependencies
-└── README.md                    # This file
+├── data/                      # Training data from Munich Open Data Portal
+├── model_selection/           # Model training and selection scripts
+│   ├── mlp_model.py          # MLP Neural Network (BEST: MAE 6.26)
+│   ├── svr_model.py          # Support Vector Regression
+│   ├── holt_winters_model.py # Holt-Winters model
+│   ├── prophet_model.py      # Facebook Prophet
+│   └── sarima_model.py       # SARIMA model
+├── prediction/                # Final MLP model results
+│   ├── mlp_best_model_vs_actual.png
+│   ├── mlp_all_models_comparison.png
+│   ├── mlp_prediction_results_2021.csv
+│   └── mlp_model_summary.csv
+├── model_experiments/         # Other model testing results
+├── scripts/                   # Data analysis and visualization scripts
+├── visualization/             # EDA visualizations
+├── app_fastapi.py            # FastAPI application
+├── app.py                    # Flask API (legacy)
+├── test_api.py               # API testing script
+└── requirements.txt          # Python dependencies
 ```
 
 ## 🔌 API Reference
@@ -101,6 +104,13 @@ Get API information and model details.
 
 ```bash
 curl https://alkoholunfaelle-prediction.onrender.com/
+```
+
+#### GET /health
+Health check endpoint.
+
+```bash
+curl https://alkoholunfaelle-prediction.onrender.com/health
 ```
 
 #### POST /predict
@@ -117,7 +127,7 @@ Get prediction for a specific month and year.
 **Response:**
 ```json
 {
-  "prediction": 22.05
+  "prediction": 24.12
 }
 ```
 
@@ -134,8 +144,8 @@ The API returns appropriate error messages for invalid inputs:
 
 - Missing fields: `{"error": "Both 'year' and 'month' are required"}`
 - Invalid month: `{"error": "Month must be between 1 and 12"}`
-- Past dates: `{"error": "Cannot predict for past dates. Training data ends at YYYY-MM"}`
-- Future limit: `{"error": "Predictions only available up to 10 years in the future"}`
+- Past dates: `{"error": "Cannot predict for past dates. Training data ends at 2020-12"}`
+- Future limit: `{"error": "Predictions only available up to 5 years in the future"}`
 
 ## 🚀 Deployment
 
