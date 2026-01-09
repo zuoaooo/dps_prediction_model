@@ -56,27 +56,21 @@ The historical data shows clear seasonal patterns and trends in alcohol-related 
 ![Seasonal Decomposition](visualization/seasonal_decomposition.png)
 *Seasonal decomposition showing trend, seasonality, and residuals*
 
-## 🎯 Models Tested
+## 🎯 Model Evaluation & Results
 
-Multiple time series models were evaluated:
+Multiple time series models were evaluated on 2021 data:
 
 - Linear Regression (Trend + Seasonality)
 - ARIMA(1,1,1)
-- **SARIMA(1,1,1)(1,1,1,12)** ✓ Best performing
+- **SARIMA(1,1,1)(1,1,1,12)** ✓ Best performing (MAE: 8.23)
 - Prophet (Facebook)
 
-### Best Model Performance
+![Model Comparison](prediction/alkohol_prediction_analysis_2021.png)
+*Comparison of all models' predictions vs actual 2021 values*
 
-**SARIMA(1,1,1)(1,1,1,12)** achieved the lowest Mean Absolute Error (MAE) of **8.23**.
-
-![Model Comparison](prediction/best_model_vs_actual.png)
-*Comparison of best model predictions vs actual values*
-
-## 📈 Prediction Results
-
-Detailed prediction results are available in:
-- [prediction_results_2021.csv](prediction/prediction_results_2021.csv) - Monthly predictions for 2021
-- [model_summary.csv](prediction/model_summary.csv) - Full model comparison summary
+**Detailed results:**
+- [prediction_results_2021.csv](prediction/prediction_results_2021.csv) - Monthly predictions for all models
+- [model_summary.csv](prediction/model_summary.csv) - Model performance metrics (MAE, RMSE, MAPE)
 
 ## 📁 Project Structure
 
