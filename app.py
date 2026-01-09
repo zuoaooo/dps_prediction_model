@@ -48,7 +48,7 @@ def home():
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
-        data = request.get_json()
+        data = request.get_json(force=True)
 
         if not data:
             return jsonify({"error": "No JSON data provided"}), 400
@@ -59,9 +59,12 @@ def predict():
         if year is None or month is None:
             return jsonify({"error": "Both 'year' and 'month' are required"}), 400
 
-        # Validate input
-        year = int(year)
-        month = int(month)
+        # Validate and convert input - handle both string and integer inputs
+        try:
+            year = int(year)
+            month = int(month)
+        except (ValueError, TypeError) as e:
+            return jsonify({"error": f"Invalid year or month format. Both must be numbers. Error: {str(e)}"}), 400
 
         if month < 1 or month > 12:
             return jsonify({"error": "Month must be between 1 and 12"}), 400
