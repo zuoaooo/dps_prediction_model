@@ -4,27 +4,6 @@ This project predicts monthly alcohol-related traffic accidents (Alkoholunfälle
 
 ## 🚀 Quick Start
 
-### Online API (Recommended)
-
-The API is deployed and ready to use at: **https://munich-alcohol-accidents-prediction.onrender.com**
-
-```bash
-curl -X POST https://munich-alcohol-accidents-prediction.onrender.com/predict \
-  -H "Content-Type: application/json" \
-  -d '{"year": 2021, "month": 1}'
-```
-
-Response:
-```json
-{"prediction": 24.12}
-```
-
-### API Documentation
-
-FastAPI provides interactive API documentation:
-- **Swagger UI**: https://munich-alcohol-accidents-prediction.onrender.com/docs
-- **ReDoc**: https://munich-alcohol-accidents-prediction.onrender.com/redoc
-
 ### Local Development
 
 1. Install dependencies:
@@ -49,43 +28,57 @@ Or use the test script:
 python test_api.py
 ```
 
-## 🎯 Model Performance
+### API Documentation
 
-### Selected Model: MLP Neural Network
+FastAPI provides interactive API documentation when running locally:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
 
-**Architecture**: 120-80-40-20 (4 hidden layers)
-**Performance (MAE)**: 6.26 - Best among all tested models
+## 🎯 Model & Performance
 
-The model was trained on historical data up to December 2020 and validated on 2021 data.
+### MLP Neural Network
+
+The prediction model is a **Multi-Layer Perceptron (MLP)** with the following configuration:
+
+- **Architecture**: 4 hidden layers (120-80-40-20 neurons)
+- **Features**: Lag values (1,2,3,6,12), rolling statistics (3,6,12), cyclic month encoding (sin/cos), quarter, trend
+- **Training**: Adam optimizer, adaptive learning rate, early stopping
+- **Performance**: MAE 6.26, RMSE 7.59, MAPE 26.53% (validated on 2021 data)
 
 ### Prediction Results
 
-![Model Comparison](prediction/mlp_all_models_comparison.png)
-*Comparison of different MLP architectures tested*
+![MLP Predictions](prediction/mlp_best_model_vs_actual.png)
+*MLP model predictions vs actual 2021 values*
 
-![Best Model vs Actual](prediction/mlp_best_model_vs_actual.png)
-*Best MLP model predictions vs actual 2021 values*
-
-### Detailed Results
-
-- [mlp_prediction_results_2021.csv](prediction/mlp_prediction_results_2021.csv) - Monthly predictions for 2021
-- [mlp_model_summary.csv](prediction/mlp_model_summary.csv) - Model performance metrics
+Detailed prediction results are available in [mlp_prediction_results_2021.csv](prediction/mlp_prediction_results_2021.csv)
 
 ## 📁 Project Structure
 
 ```
-├── data/                      # Training data from Munich Open Data Portal
-├── prediction/                # MLP model prediction results
+├── data/                          # Training data from Munich Open Data Portal
+│   ├── alkohol_training_data.csv
+│   └── alkohol_ground_truth_2021.csv
+├── model_selection/               # Model training scripts
+│   ├── mlp_model.py              # MLP neural network
+│   ├── sarima_model.py           # SARIMA time series model
+│   ├── prophet_model.py          # Prophet forecasting
+│   ├── holt_winters_model.py     # Holt-Winters exponential smoothing
+│   └── svr_model.py              # Support Vector Regression
+├── model_experiments/             # All model results and comparisons
+│   ├── *_model_summary.csv       # Performance metrics
+│   ├── *_prediction_results_2021.csv
+│   └── *_best_model_vs_actual.png
+├── prediction/                    # Production model results (MLP)
 │   ├── mlp_best_model_vs_actual.png
-│   ├── mlp_all_models_comparison.png
-│   ├── mlp_prediction_results_2021.csv
-│   └── mlp_model_summary.csv
-├── scripts/                   # Data analysis and visualization scripts
-├── visualization/             # EDA visualizations
-├── app_fastapi.py            # FastAPI application (Production)
-├── app.py                    # Flask API (Legacy)
-├── test_api.py               # API testing script
-└── requirements.txt          # Python dependencies
+│   └── mlp_prediction_results_2021.csv
+├── scripts/                       # EDA and visualization scripts
+│   ├── monthly_visualization.py
+│   ├── filter.py
+├── visualization/                 # EDA output visualizations
+├── app_fastapi.py                # FastAPI application (Production)
+├── app.py                        # Flask API (Legacy)
+├── test_api.py                   # API testing script
+└── requirements.txt              # Python dependencies
 ```
 
 ## 🔌 API Reference
@@ -96,14 +89,14 @@ The model was trained on historical data up to December 2020 and validated on 20
 Get API information and model details.
 
 ```bash
-curl https://munich-alcohol-accidents-prediction.onrender.com/
+curl http://localhost:8000/
 ```
 
 #### GET /health
 Health check endpoint.
 
 ```bash
-curl https://munich-alcohol-accidents-prediction.onrender.com/health
+curl http://localhost:8000/health
 ```
 
 #### POST /predict
@@ -120,13 +113,13 @@ Get prediction for a specific month and year.
 **Response:**
 ```json
 {
-  "prediction": 24.12
+  "prediction": 22.88
 }
 ```
 
 **Example:**
 ```bash
-curl -X POST https://munich-alcohol-accidents-prediction.onrender.com/predict \
+curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"year": 2021, "month": 1}'
 ```
@@ -142,9 +135,7 @@ The API returns appropriate error messages for invalid inputs:
 
 ## 🚀 Deployment
 
-The application is deployed on [Render](https://render.com) and automatically updates when changes are pushed to the main branch.
-
-**Live API:** https://munich-alcohol-accidents-prediction.onrender.com
+The application can be deployed to cloud services like Render, Heroku, or AWS.
 
 ## 📝 License
 
