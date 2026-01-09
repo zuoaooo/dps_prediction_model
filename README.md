@@ -75,14 +75,9 @@ Multiple time series models were evaluated:
 
 ## 📈 Prediction Results
 
-### Example: 2021 Predictions
-
-![2021 Predictions](prediction/alkohol_prediction_analysis_2021.png)
-*Predicted vs actual alcohol-related accidents for 2021*
-
-Detailed monthly predictions are available in [prediction_results_2021.csv](prediction/prediction_results_2021.csv).
-
-Full model comparison summary: [model_summary.csv](prediction/model_summary.csv)
+Detailed prediction results are available in:
+- [prediction_results_2021.csv](prediction/prediction_results_2021.csv) - Monthly predictions for 2021
+- [model_summary.csv](prediction/model_summary.csv) - Full model comparison summary
 
 ## 📁 Project Structure
 
