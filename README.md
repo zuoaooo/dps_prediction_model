@@ -63,7 +63,6 @@ Multiple time series models were evaluated:
 - Linear Regression (Trend + Seasonality)
 - ARIMA(1,1,1)
 - **SARIMA(1,1,1)(1,1,1,12)** ✓ Best performing
-- SARIMA(2,1,2)(1,1,1,12) Optimized
 - Prophet (Facebook)
 
 ### Best Model Performance

@@ -92,23 +92,10 @@ except Exception as e:
     print(f"   Model failed: {e}")
     sarima_predictions = None
 
-# Model 4: SARIMA with optimized parameters
-print("4. SARIMA(2,1,2)(1,1,1,12) Model (Optimized)")
-try:
-    sarima_opt_model = SARIMAX(ts_data, order=(2, 1, 2), seasonal_order=(1, 1, 1, 12))
-    sarima_opt_fitted = sarima_opt_model.fit(disp=False)
-    sarima_opt_forecast = sarima_opt_fitted.forecast(steps=n_forecast)
-    sarima_opt_predictions = sarima_opt_forecast.values
-    print(f"   Model fitted successfully")
-    print(f"   All 12 months: {sarima_opt_predictions.round(2)}")
-except Exception as e:
-    print(f"   Model failed: {e}")
-    sarima_opt_predictions = None
-
-# Model 5: Prophet
+# Model 4: Prophet
 prophet_predictions = None
 if PROPHET_AVAILABLE:
-    print("5. Prophet Model (Facebook)")
+    print("4. Prophet Model (Facebook)")
     try:
         prophet_df = train_df[['date', 'WERT']].copy()
         prophet_df.columns = ['ds', 'y']
@@ -148,8 +135,6 @@ if arima_predictions is not None:
     models['ARIMA'] = arima_predictions
 if sarima_predictions is not None:
     models['SARIMA'] = sarima_predictions
-if sarima_opt_predictions is not None:
-    models['SARIMA_Optimized'] = sarima_opt_predictions
 if prophet_predictions is not None:
     models['Prophet'] = prophet_predictions
 
@@ -188,20 +173,24 @@ for model_name, predictions in models.items():
 print("-" * 80)
 print(f"\nBest Model: {best_model}")
 
-# Best model visualization (full history 2000-2020 + best prediction vs actual 2021)
+# Best model visualization (recent history 2016-2020 + best prediction vs actual 2021)
 if best_model is not None:
     best_preds = models[best_model]
     fig_best, ax_best = plt.subplots(figsize=(16, 6))
-    ax_best.plot(train_df['date'], train_df['WERT'], 'b-', linewidth=1.2, label='Historical (2000-2020)')
-    ax_best.plot(truth_df['date'], actual_values, 'ro-', markersize=5, linewidth=2, label='Actual 2021')
-    ax_best.plot(truth_df['date'], best_preds, 'gs--', markersize=4, linewidth=1.6, label=f'Best Model ({best_model})')
+
+    # Only show recent historical data (2016-2020) for better clarity
+    historical_recent = train_df[train_df['date'] >= '2016-01-01']
+    ax_best.plot(historical_recent['date'], historical_recent['WERT'], 'b-o',
+                 markersize=3, alpha=0.6, linewidth=1.5, label='Historical (2016-2020)')
+    ax_best.plot(truth_df['date'], actual_values, 'ro-', markersize=6, linewidth=2, label='Actual 2021', zorder=5)
+    ax_best.plot(truth_df['date'], best_preds, 'gs--', markersize=5, linewidth=2, label=f'Best Model ({best_model})', zorder=4)
     ax_best.axvline(x=pd.to_datetime('2021-01-01'), color='gray', linestyle='--', alpha=0.5)
-    ax_best.set_xlabel('Date', fontsize=11)
-    ax_best.set_ylabel('Number of Accidents', fontsize=11)
-    ax_best.set_title('Alcohol-related Accidents: History (2000-2020) and Best Model vs Actual 2021',
-                      fontsize=13, fontweight='bold')
+    ax_best.set_xlabel('Date', fontsize=12)
+    ax_best.set_ylabel('Number of Accidents', fontsize=12)
+    ax_best.set_title('Alcohol-related Accidents: Best Model Predictions vs Actual 2021',
+                      fontsize=14, fontweight='bold')
     ax_best.grid(True, alpha=0.3)
-    ax_best.legend(loc='best', fontsize=9)
+    ax_best.legend(loc='best', fontsize=10)
     ax_best.tick_params(axis='x', rotation=45)
     plt.tight_layout()
     plt.savefig('prediction/best_model_vs_actual.png', dpi=300, bbox_inches='tight')
